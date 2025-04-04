@@ -8,7 +8,7 @@
 #include "DHT20.h"
 #include "Wire.h"
 #include <ArduinoOTA.h>
-
+#include <scheduler.h>  
 constexpr char WIFI_SSID[] = "Anonymous";
 constexpr char WIFI_PASSWORD[] = "Nguyen2004";
 
@@ -18,6 +18,7 @@ constexpr char WIFI_PASSWORD[] = "Nguyen2004";
 constexpr char TOKEN[] = "1h4pxb8834heq7f7er4f";
 
 constexpr char THINGSBOARD_SERVER[] = "app.coreiot.io";
+constexpr char DEVICE_PROFILE[] = "Temperature Sensor";
 constexpr uint16_t THINGSBOARD_PORT = 1883U;
 
 constexpr uint32_t MAX_MESSAGE_SIZE = 1024U;
@@ -86,7 +87,13 @@ void processSharedAttributes(const Shared_Attribute_Data &data) {
 
 const Shared_Attribute_Callback attributes_callback(&processSharedAttributes, SHARED_ATTRIBUTES_LIST.cbegin(), SHARED_ATTRIBUTES_LIST.cend());
 const Attribute_Request_Callback attribute_shared_request_callback(&processSharedAttributes, SHARED_ATTRIBUTES_LIST.cbegin(), SHARED_ATTRIBUTES_LIST.cend());
+void task1(){
+  Serial.println("Hello Task 1");
+}
 
+void task2(){
+  Serial.println("Hello Task 2");
+}
 void InitWiFi() {
   Serial.println("Connecting to AP ...");
   // Attempting to establish a connection to the given WiFi network
@@ -108,6 +115,9 @@ const bool reconnect() {
   // If we aren't establish a new connection to the given WiFi network
   InitWiFi();
   return true;
+}
+void TB_LoopTask() {
+  tb.loop();  // Cần gọi thường xuyên để xử lý RPC
 }
 void wifi_reconnect(void *pvParameters) {
   while(1) {
@@ -200,7 +210,7 @@ void Send_TelemetryData(void * pvParameters) {
     tb.sendAttributeData("localIp", WiFi.localIP().toString().c_str());
     tb.sendAttributeData("ssid", WiFi.SSID().c_str());
   
-    vTaskDelay(2000);
+    vTaskDelay(5000);
     tb.loop();
   }
 }
@@ -214,13 +224,17 @@ void setup() {
   dht20.begin();
   
   Serial.println("hello world");
+  // SCH_Init();
+  // SCH_Add_Task(task1, 200, 2000);
+  // SCH_Add_Task(task2, 100, 5000);
 
   xTaskCreate(wifi_reconnect, "wifi_reconnect", 4096, NULL, 1, NULL);
   xTaskCreate(tb_reconnect, "tb_reconnect", 4096, NULL, 1, NULL);
   xTaskCreate(Button_LED, "Button_LED", 2048, NULL, 1, NULL);
   xTaskCreate(Send_TelemetryData, "Send_TelemetryData", 4096, NULL, 2, NULL);
+  SCH_Add_Task(TB_LoopTask, 200, 2000);
 }
 
 void loop() {
-  
+  // SCH_Dispatch_Tasks();
 }
