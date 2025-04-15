@@ -66,20 +66,34 @@ const std::array<RPC_Callback, 1U> callbacks = {
   RPC_Callback{ "setLedSwitchValue", setLedSwitchState }
 };
 
+// void processSharedAttributes(const Shared_Attribute_Data &data) {
+//   for (auto it = data.begin(); it != data.end(); ++it) {
+//     if (strcmp(it->key().c_str(), BLINKING_INTERVAL_ATTR) == 0) {
+//       const uint16_t new_interval = it->value().as<uint16_t>();
+//       if (new_interval >= BLINKING_INTERVAL_MS_MIN && new_interval <= BLINKING_INTERVAL_MS_MAX) {
+//         blinkingInterval = new_interval;
+//         Serial.print("Blinking interval is set to: ");
+//         Serial.println(new_interval);
+//       }
+//     } else if (strcmp(it->key().c_str(), LED_STATE_ATTR) == 0) {
+//       ledState = it->value().as<bool>();
+//       digitalWrite(LED_PIN, ledState);
+//       Serial.print("LED state is set to: ");
+//       Serial.println(ledState);
+//     }
+//   }
+//   attributesChanged = true;
+// }
 void processSharedAttributes(const Shared_Attribute_Data &data) {
   for (auto it = data.begin(); it != data.end(); ++it) {
-    if (strcmp(it->key().c_str(), BLINKING_INTERVAL_ATTR) == 0) {
-      const uint16_t new_interval = it->value().as<uint16_t>();
-      if (new_interval >= BLINKING_INTERVAL_MS_MIN && new_interval <= BLINKING_INTERVAL_MS_MAX) {
-        blinkingInterval = new_interval;
-        Serial.print("Blinking interval is set to: ");
-        Serial.println(new_interval);
+    if (strcmp(it->key().c_str(), LED_STATE_ATTR) == 0) {
+      bool newState = it->value().as<bool>();
+      if (newState != ledState) { 
+        ledState = newState;
+        digitalWrite(LED_PIN, ledState);
+        Serial.print("LED state is set to: ");
+        Serial.println(ledState);
       }
-    } else if (strcmp(it->key().c_str(), LED_STATE_ATTR) == 0) {
-      ledState = it->value().as<bool>();
-      digitalWrite(LED_PIN, ledState);
-      Serial.print("LED state is set to: ");
-      Serial.println(ledState);
     }
   }
   attributesChanged = true;
@@ -130,9 +144,9 @@ void wifi_reconnect(void *pvParameters) {
         delay(500);
         Serial.print(".");
       }
-      Serial.println("WiFi reconnected");
+      // Serial.println("WiFi reconnected");
     }
-    Serial.println("WiFi reconnect task runed...");
+    // Serial.println("WiFi reconnect task runed...");
     vTaskDelay(10000);
   }
 }
@@ -169,7 +183,7 @@ void tb_reconnect(void *pvParameters) {
         return;
       }
     }
-    Serial.println("Thingsboard reconnect task runed...");
+    // Serial.println("Thingsboard reconnect task runed...");
     vTaskDelay(10000);
   }
 }
@@ -224,9 +238,6 @@ void setup() {
   dht20.begin();
   
   Serial.println("hello world");
-  // SCH_Init();
-  // SCH_Add_Task(task1, 200, 2000);
-  // SCH_Add_Task(task2, 100, 5000);
 
   xTaskCreate(wifi_reconnect, "wifi_reconnect", 4096, NULL, 1, NULL);
   xTaskCreate(tb_reconnect, "tb_reconnect", 4096, NULL, 1, NULL);
